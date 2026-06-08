@@ -10,6 +10,7 @@
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs}
 \usepackage{longtable}
+\usepackage{array}
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,pdfborder={0 0 0}]{hyperref}
@@ -35,6 +36,12 @@
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\filepath}[1]{{\urlstyle{tt}\path{#1}}}
+\newcommand{\pinned}[1]{%
+  \par\noindent\begin{minipage}{\linewidth}\raggedright
+  \emph{Pinned to:} {\small\filepath{#1}}
+  \end{minipage}\par}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 \title{\textbf{Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing}\\[2pt]
 \large A self-published artifact on routing whose behavior is \emph{proved as runnable tests}, not asserted}
@@ -118,9 +125,9 @@ $x\in\mathbb{R}^d$ & $M=LL^\top+\delta I$ & $\arg\min_m F_s(x,m)$ & feasible set
 \end{tabular}
 \medskip
 
-\begin{tabular}{@{}p{0.24\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.18\linewidth}@{}}
+\begin{tabular}{@{}L{0.24\linewidth}L{0.24\linewidth}L{0.24\linewidth}L{0.18\linewidth}@{}}
 \textcolor{blue}{Geometry} & \textcolor{blue}{Control} & \textcolor{blue}{Falsification} & \textcolor{blue}{Scope}\\
-anisotropic model fit & line search + trust radius & P1--P8 invariant suite & local, surrogate, open
+anisotropic model fit & line search + trust radius & P1--P8 invariant suite & local; surrogate; open
 \end{tabular}
 \end{minipage}}
 \caption{\textbf{Compitum at a glance.} The router acts as a bounded observer: it sees a
@@ -149,7 +156,7 @@ metric rather than a fixed Euclidean one because the relevant notion of ``fit'' 
 prompt and a model is anisotropic; the geometry is the inductive bias.
 
 \paragraph{Symbolic Free Energy.} Routing scalarizes competing desiderata into a single
-potential (\code{src/compitum/energy.py}):
+potential (\filepath{src/compitum/energy.py}):
 \begin{equation}\label{eq:Fs}
 \Fs(x,m) = \alpha\,(-\hat q_m) + \beta_t\,\hat\ell_m + \beta_c\,\hat c_m
         + \beta_d\, d_{M_m}(x,\mu_m) - \beta_s\, e_m,
@@ -198,19 +205,19 @@ embedding are held fixed (no switching), isolating the learning/control dynamics
 Under (A1)--(A2) and a backtracking line search that accepts only non-increasing steps, the
 metric update satisfies $E(L_{k+1};z)\le E(L_k;z)$.
 \end{lemma}
-\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_lg.py::test\_metric\_update\_line\_search\_non\_increase}.
+\pinned{tests/invariants/test_invariants_lg.py::test_metric_update_line_search_non_increase}
 
 \begin{lemma}[Zero-error Lyapunov decay]\label{lem:B}
 Under (A3), if the observed error proxy $d_\star$ is zero for $T$ steps, the controller
 candidate $\Vctrl=(\text{drift integral})^{2}$ is non-increasing over those steps.
 \end{lemma}
-\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_control\_sy.py::test\_lyapunov\_decays\_under\_zero\_error}.
+\pinned{tests/invariants/test_invariants_control_sy.py::test_lyapunov_decays_under_zero_error}
 
 \begin{lemma}[Two-timescale isolation]\label{lem:C}
 Before \code{update\_stride} is reached, $L_m$ is unchanged; updates occur only at stride
 boundaries, subject to Lemma~\ref{lem:A}.
 \end{lemma}
-\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_control\_sy.py::test\_two\_timescale\_metric\_update\_stride}.
+\pinned{tests/invariants/test_invariants_control_sy.py::test_two_timescale_metric_update_stride}
 
 \begin{proposition}[Composite non-increase]\label{prop:composite}
 Define $\Vtot(k)=E(L_k;z)+\gamma\,\Vctrl(k)$ with $\gamma>0$. Under (A1)--(A4), at the
@@ -220,7 +227,7 @@ term does not increase at strides (Lemma~\ref{lem:A}). In the routed certificate
 negative of the distance component is an observable proxy for $E$, and it does not increase
 over repeated updates.
 \end{proposition}
-\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_srmf\_lyapunov.py::test\_distance\_decreases\_over\_updates}.
+\pinned{tests/invariants/test_invariants_srmf_lyapunov.py::test_distance_decreases_over_updates}
 
 \begin{remark}[Honest scope]
 This is a \emph{Lyapunov-style} statement: it establishes monotone non-increase of a
@@ -239,19 +246,19 @@ property-based, generating many cases per run). To attempt falsification:
 \code{HYPOTHESIS\_PROFILE=ci pytest -q tests/invariants}
 \end{center}
 
-\begin{longtable}{@{}p{0.5cm}p{5.4cm}p{4.0cm}p{3.2cm}@{}}
+\begin{longtable}{@{}L{0.5cm}L{5.0cm}L{3.7cm}L{3.9cm}@{}}
 \toprule
 \textbf{} & \textbf{Prediction} & \textbf{Falsified if} & \textbf{Test}\\
 \midrule
 \endhead
-P1 & The learned metric $M_m$ is strictly SPD. & any eigenvalue $\le 0$ for $\delta>0$. & \code{test\_invariants\_metric}\\
-P2 & $d_{M_m}$ obeys symmetry, triangle inequality, and ray monotonicity. & any axiom violated beyond tolerance. & \code{test\_invariants\_metric\_triangle}, \code{...\_ray}\\
-P3 & (Lemma~\ref{lem:A}) Metric line-search updates are non-increasing in $E$. & $E_{k+1}>E_k$ on any accepted step. & \code{test\_invariants\_lg}\\
-P4 & (Lemma~\ref{lem:B}) $\Vctrl$ decays under zero drift. & $\Vctrl$ increases under $d_\star=0$. & \code{test\_invariants\_control\_sy}\\
-P5 & (Lemma~\ref{lem:C}) Learning is isolated between strides. & $L_m$ changes before \code{update\_stride}. & \code{test\_invariants\_control\_sy}\\
-P6 & (Prop.~\ref{prop:composite}) Routed distance proxy does not increase over updates. & final $>$ initial beyond tolerance. & \code{test\_invariants\_srmf\_lyapunov}\\
-P7 & Selection is feasibility-monotone; duals are near-zero slack at the boundary. & an infeasible model selected, or slack far from $0$. & \code{test\_invariants\_constraints}, \code{...\_duals\_near\_binding}\\
-P8 & Routing is deterministic and paraphrase behavior is bounded and explainable. & identical input yields different routes; flip budget exceeded. & \code{test\_invariants\_router\_determinism}, \code{test\_paraphrase\_*}\\
+P1 & The learned metric $M_m$ is strictly SPD. & any eigenvalue $\le 0$ for $\delta>0$. & {\small\filepath{test_invariants_metric}}\\
+P2 & $d_{M_m}$ obeys symmetry, triangle inequality, and ray monotonicity. & any axiom violated beyond tolerance. & {\small\filepath{metric_triangle}}, {\small\filepath{metric_ray}}\\
+P3 & (Lemma~\ref{lem:A}) Metric line-search updates are non-increasing in $E$. & $E_{k+1}>E_k$ on any accepted step. & {\small\filepath{test_invariants_lg}}\\
+P4 & (Lemma~\ref{lem:B}) $\Vctrl$ decays under zero drift. & $\Vctrl$ increases under $d_\star=0$. & {\small\filepath{control_sy}}\\
+P5 & (Lemma~\ref{lem:C}) Learning is isolated between strides. & $L_m$ changes before \code{update\_stride}. & {\small\filepath{control_sy}}\\
+P6 & (Prop.~\ref{prop:composite}) Routed distance proxy does not increase over updates. & final $>$ initial beyond tolerance. & {\small\filepath{srmf_lyapunov}}\\
+P7 & Selection is feasibility-monotone; duals are near-zero slack at the boundary. & an infeasible model selected, or slack far from $0$. & {\small\filepath{constraints}}, {\small\filepath{duals_near_binding}}\\
+P8 & Routing is deterministic and paraphrase behavior is bounded and explainable. & identical input yields different routes; flip budget exceeded. & {\small\filepath{router_determinism}}, {\small\filepath{paraphrase_*}}\\
 \bottomrule
 \end{longtable}
 
