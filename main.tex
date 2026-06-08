@@ -13,6 +13,12 @@
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,pdfborder={0 0 0}]{hyperref}
+\hypersetup{
+  pdftitle={Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing},
+  pdfauthor={Paul C. Tiffany},
+  pdfsubject={Verifiable LLM routing with SPD metric learning, feasibility-first constraints, and Lyapunov-style bounded updates},
+  pdfkeywords={LLM routing, Lyapunov stability, SPD metric learning, bounded observer, falsifiable evaluation, Compitum}
+}
 
 \theoremstyle{plain}
 \newtheorem{lemma}{Lemma}
@@ -99,6 +105,30 @@ property to a runnable test; and (iv) an honest empirical reading, including a n
 result. We do \emph{not} claim a general benchmark victory, a complete (global) stability
 proof, or that $\Fs$ is the ``correct'' potential. Those are stated as open, in
 Section~\ref{sec:limits}, as the direction the program is heading.
+
+\begin{figure}[t]
+\centering
+\fbox{\begin{minipage}{0.88\linewidth}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}c@{\ $\to$\ }c@{\ $\to$\ }c@{\ $\to$\ }c@{\ $\to$\ }c@{}}
+\textbf{Request} & \textbf{SPD chart} & \textbf{Free energy} & \textbf{Constraints} & \textbf{Certificate}\\
+$x\in\mathbb{R}^d$ & $M=LL^\top+\delta I$ & $\arg\min_m F_s(x,m)$ & feasible set first & route + tests
+\end{tabular}
+\medskip
+
+\begin{tabular}{@{}p{0.24\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.18\linewidth}@{}}
+\textcolor{blue}{Geometry} & \textcolor{blue}{Control} & \textcolor{blue}{Falsification} & \textcolor{blue}{Scope}\\
+anisotropic model fit & line search + trust radius & P1--P8 invariant suite & local, surrogate, open
+\end{tabular}
+\end{minipage}}
+\caption{\textbf{Compitum at a glance.} The router acts as a bounded observer: it sees a
+finite request embedding, scores model fit in a learned SPD chart, minimizes a scalarized
+energy only over feasible actions, and emits diagnostics whose structural claims are pinned
+to tests.}
+\label{fig:roadmap}
+\end{figure}
 
 \section{Construction}\label{sec:construction}
 
@@ -230,6 +260,34 @@ named properties hold across the generated cases. That is a smaller and more hon
 a benchmark number, and a more useful one: it tells you exactly what you can rely on.
 
 \section{Empirical Reading (the honest part)}\label{sec:empirical}
+
+\begin{figure}[t]
+\centering
+\fbox{\begin{minipage}{0.86\linewidth}
+\small
+\textbf{Synthetic case A: utility-per-dollar at zero violations}\par\medskip
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Strategy} & \textbf{UP\$} & \textbf{visual scale}\\
+\midrule
+Compitum & 0.96 & \rule{0.96in}{6pt}\\
+Fixed best & 0.82 & \rule{0.82in}{6pt}\\
+Greedy & 0.82 & \rule{0.82in}{6pt}\\
+UCB1 & 0.84 & \rule{0.84in}{6pt}\\
+Thompson & 0.82 & \rule{0.82in}{6pt}\\
+\bottomrule
+\end{tabular}
+\medskip
+
+\textit{Tradeoff:} Compitum's p95 latency is about 6.1\,s in this benchmark, while the
+simple baselines are sub-millisecond to millisecond scale. The cost-linear baseline is cheaper
+but optimizes a different tradeoff and has lower total utility.
+\end{minipage}}
+\caption{\textbf{Narrow positive result, not a general victory.} Compitum's synthetic
+advantage is utility-per-dollar at zero constraint violations under the stated benchmark
+conditions, with an explicit latency cost.}
+\label{fig:bench}
+\end{figure}
 
 \paragraph{E1 --- Cost-efficiency at zero violations, with a latency cost (synthetic).}
 On a synthetic routing benchmark (\code{bench\_summary.csv}; cases A--D; strategies
