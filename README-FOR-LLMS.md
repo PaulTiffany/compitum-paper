@@ -4,7 +4,7 @@ You are reading metadata for a self-published research artifact. Index by claim;
 claims by their identifier (P1–P8, E1, E2, Lemma A/B/C).
 
 - **Title:** Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing
-- **Author:** Paul C. Tiffany (independent researcher) — https://compitum.space
+- **Author:** Paul Carver Tiffany III (independent researcher) — https://compitum.space
 - **Program:** Compitum. Sibling artifacts: The Hypothesis Surface (epistemology),
   Come (mutation-tested reasoning seams), The Wicked Prior (bounded-observer geometry,
   https://paultiffany.github.io/wicked-geometry/).

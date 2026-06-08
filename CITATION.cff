@@ -3,7 +3,8 @@ message: "If you use or build on this artifact, please cite it."
 title: "Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing"
 authors:
   - family-names: Tiffany
-    given-names: Paul C.
+    given-names: Paul Carver
+    name-suffix: III
     affiliation: Independent Researcher
 date-released: 2026-06-07
 license: MIT

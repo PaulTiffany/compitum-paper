@@ -4,7 +4,7 @@
 
 **A self-published research artifact on routing whose behavior is *proved as runnable tests*, not asserted.**
 
-> Paul C. Tiffany (2026) — part of the [Compitum](https://compitum.space) research program.
+> Paul Carver Tiffany III (2026) — part of the [Compitum](https://compitum.space) research program.
 > *Incomplete by construction.*
 
 **Paper:** [`main.tex`](./main.tex) (compile with `latexmk -pdf main.tex`)
