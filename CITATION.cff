@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use or build on this artifact, please cite it."
+title: "Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing"
+authors:
+  - family-names: Tiffany
+    given-names: Paul C.
+    affiliation: Independent Researcher
+date-released: 2026-06-07
+license: MIT
+url: "https://compitum.space"
+repository-code: "https://github.com/PaulTiffany/compitum"
+abstract: >-
+  A self-published artifact describing Compitum, a geometrically-aware LLM router that
+  selects a model by minimizing a scalarized Symbolic Free Energy over a learned SPD metric
+  under feasibility-first constraints, with a Lyapunov-style controller gating two-timescale
+  online updates. Its contribution is verifiability by construction: structural and dynamical
+  properties are stated as assumptions, derived as lemmas, and pinned to runnable property-based
+  tests, with an honest empirical reading that includes a negative result. Incomplete by construction.
+keywords:
+  - LLM routing
+  - Lyapunov stability
+  - SPD metric learning
+  - bounded observer
+  - anti-masking
+  - falsifiable evaluation

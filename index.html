@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing</title>
+  <meta name="description" content="A self-published research artifact on routing whose behavior is proved as runnable tests, not asserted. SPD metric learning, feasibility-first constraints, Lyapunov-style control. Incomplete by construction." />
+  <meta name="theme-color" content="#0a0b0d" />
+  <link rel="canonical" href="https://paultiffany.github.io/compitum-paper/" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing" />
+  <meta property="og:description" content="Routing whose behavior is proved as runnable tests, not asserted. Incomplete by construction." />
+  <meta property="og:url" content="https://paultiffany.github.io/compitum-paper/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing",
+    "author": {"@type": "Person", "name": "Paul C. Tiffany", "url": "https://compitum.space",
+      "sameAs": ["https://paultiffany.github.io/", "https://github.com/PaulTiffany"]},
+    "license": "https://opensource.org/licenses/MIT",
+    "isPartOf": "Compitum research program",
+    "url": "https://paultiffany.github.io/compitum-paper/",
+    "sameAs": ["https://compitum.space", "https://github.com/PaulTiffany/compitum"],
+    "abstract": "A geometrically-aware LLM router whose structural and dynamical properties are stated as assumptions, derived as lemmas, and pinned to runnable property-based tests, with an honest empirical reading including a negative result. Incomplete by construction."
+  }
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+      color:#e8ebef;background:#0a0b0d;padding:0 0 80px}
+    a{color:#00d4ff}
+    .skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:#00d4ff;color:#0a0b0d;padding:8px;border-radius:6px;z-index:10}
+    header{max-width:920px;margin:0 auto;padding:72px 24px 24px}
+    .tag{display:inline-block;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;
+      color:#00d4ff;border:1px solid rgba(0,212,255,.35);border-radius:999px;padding:5px 12px;margin-bottom:20px}
+    h1{font-size:clamp(1.9rem,4.5vw,2.8rem);line-height:1.12;letter-spacing:-.02em;color:#fff;margin-bottom:14px}
+    .sub{font-size:1.15rem;color:#aeb6c0;max-width:640px;margin-bottom:24px}
+    .cta{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 8px}
+    .btn{display:inline-block;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700}
+    .btn.primary{background:linear-gradient(135deg,#00d4ff,#0099cc);color:#0a0b0d}
+    .btn.ghost{border:1px solid rgba(255,255,255,.22);color:#e8ebef}
+    main{max-width:920px;margin:0 auto;padding:0 24px}
+    section{margin-top:48px;border-top:1px solid #1b2030;padding-top:32px}
+    h2{font-size:1.5rem;color:#fff;margin-bottom:14px;letter-spacing:-.01em}
+    h3{color:#00d4ff;font-size:1.05rem;margin:18px 0 6px}
+    p{color:#cdd4dd;margin-bottom:12px}
+    code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    pre{background:#11141b;border:1px solid #1b2030;border-radius:10px;padding:14px 16px;overflow-x:auto;color:#bfe9ff;font-size:.9rem}
+    code{background:#11141b;border:1px solid #1b2030;border-radius:5px;padding:1px 6px;font-size:.86em;color:#bfe9ff}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.92rem}
+    th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #1b2030;vertical-align:top}
+    th{color:#9aa4b1;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px}
+    td code{font-size:.8em}
+    .pid{color:#00d4ff;font-weight:700}
+    .note{background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(255,0,110,.04));
+      border:1px solid rgba(0,212,255,.18);border-radius:12px;padding:16px 18px;margin-top:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:620px){.grid{grid-template-columns:1fr}}
+    footer{max-width:920px;margin:56px auto 0;padding:24px;border-top:1px solid #1b2030;color:#8893a1;font-size:.9rem}
+    footer a{color:#aeb6c0}
+    em.live{color:#00d4ff;font-style:normal;font-weight:600}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <span class="tag">Incomplete by construction</span>
+    <h1>Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing</h1>
+    <p class="sub">A self-published artifact on routing whose behavior is <strong>proved as
+      runnable tests</strong>, not asserted &mdash; submitted to the noosphere under the MIT License.</p>
+    <p class="sub" style="font-size:1rem">Paul C. Tiffany &middot; independent researcher &middot;
+      part of the <a href="https://compitum.space">Compitum</a> research program</p>
+    <div class="cta">
+      <a class="btn primary" href="main.pdf">Read the paper (PDF)</a>
+      <a class="btn ghost" href="https://github.com/PaulTiffany/compitum">Run the harness (GitHub)</a>
+      <a class="btn ghost" href="https://compitum.space">compitum.space</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section style="border-top:none;padding-top:8px">
+      <p style="font-style:italic;color:#aeb6c0">&ldquo;All of us is limited. None of us has all
+        the answers. Come develop with us.&rdquo;</p>
+    </section>
+
+    <section>
+      <h2>The thesis</h2>
+      <p>Most router papers argue quality with a leaderboard number. That hides where a method
+        helps or hurts, and you can&rsquo;t check it from the paper alone &mdash; a pattern we call
+        <strong>masking</strong>. Compitum takes the opposite stance, <strong>verifiable by
+        construction</strong>: it routes by minimizing a scalarized <em>Symbolic Free Energy</em>
+        over a learned <strong>SPD (Mahalanobis) metric</strong>, under <strong>feasibility-first
+        constraints</strong>, with a <strong>Lyapunov-style controller</strong> gating two-timescale
+        online updates &mdash; and every structural and dynamical claim is pinned to a property-based
+        test you can run to try to break it.</p>
+    </section>
+
+    <section>
+      <h2>Falsification harness (P1&ndash;P8)</h2>
+      <p>Each prediction has an explicit way to be wrong and a test that tries to make it so. A
+        passing suite doesn&rsquo;t prove the framework &ldquo;correct&rdquo; &mdash; it proves these
+        named properties hold across the generated cases. To attempt falsification:</p>
+      <pre>git clone https://github.com/PaulTiffany/compitum &amp;&amp; cd compitum
+pip install -e .
+HYPOTHESIS_PROFILE=ci pytest -q tests/invariants</pre>
+      <table>
+        <thead><tr><th></th><th>Prediction</th><th>Falsified if</th><th>Test</th></tr></thead>
+        <tbody>
+          <tr><td class="pid">P1</td><td>Learned metric M is strictly SPD</td><td>any eigenvalue &le; 0 (&delta;&gt;0)</td><td><code>test_invariants_metric</code></td></tr>
+          <tr><td class="pid">P2</td><td>Distance obeys symmetry, triangle, ray monotonicity</td><td>any axiom violated</td><td><code>..._metric_triangle/_ray</code></td></tr>
+          <tr><td class="pid">P3</td><td>Metric line-search updates non-increasing in energy</td><td>E rises on an accepted step</td><td><code>test_invariants_lg</code></td></tr>
+          <tr><td class="pid">P4</td><td>Controller V decays under zero drift</td><td>V rises when d&#8902;=0</td><td><code>test_invariants_control_sy</code></td></tr>
+          <tr><td class="pid">P5</td><td>Learning isolated between strides</td><td>L changes before stride</td><td><code>test_invariants_control_sy</code></td></tr>
+          <tr><td class="pid">P6</td><td>Routed distance proxy does not increase over updates</td><td>final &gt; initial</td><td><code>test_invariants_srmf_lyapunov</code></td></tr>
+          <tr><td class="pid">P7</td><td>Feasibility-monotone selection; near-zero dual slack</td><td>infeasible pick / large slack</td><td><code>test_invariants_constraints</code></td></tr>
+          <tr><td class="pid">P8</td><td>Deterministic routing; bounded, explainable paraphrase</td><td>same input, different route</td><td><code>test_invariants_router_determinism</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>The honest empirical reading</h2>
+      <div class="grid">
+        <div>
+          <h3>E1 &mdash; a real, narrow win</h3>
+          <p>On a synthetic benchmark, Compitum attains higher utility-per-dollar than fixed/greedy/bandit
+            baselines at <strong>zero constraint violations</strong> &mdash; <em>at a real latency cost</em>
+            (~6&thinsp;s p95 vs sub-millisecond). The geometry pays off when correctness and cost-efficiency
+            matter more than raw decision latency.</p>
+        </div>
+        <div>
+          <h3>E2 &mdash; a negative result (and a prediction)</h3>
+          <p>On flat, engineered-feature materials data the curved-metric advantage <strong>disappears</strong>
+            (scaling exponent &alpha; &asymp; 1, metric &asymp; Euclidean). A metric is only meaningful on the
+            right chart; the method is <em>not</em> expected to manufacture curvature where the data are flat.
+            Stating this is the point, not the embarrassment.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Scope &amp; program</h2>
+      <p><strong>Claimed:</strong> a concrete construction; <strong>local, surrogate, test-matched</strong>
+        Lyapunov-style non-increase; a falsification harness; an honest empirical reading.
+        <strong>Not claimed:</strong> a general benchmark win, a global stability proof, or that the free
+        energy is the &ldquo;correct&rdquo; potential. Those are open &mdash; the direction the program is heading.</p>
+      <div class="note">
+        <p style="margin:0">This artifact is one bloom of a program organized by a single commitment &mdash;
+          <strong>adequacy should be measurable, not asserted</strong>. Sibling work:
+          <a href="https://paultiffany.github.io/wicked-geometry/">The Wicked Prior</a> (bounded-observer geometry),
+          and the broader program at <a href="https://compitum.space">compitum.space</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>Paul C. Tiffany</strong> &middot; independent researcher &middot;
+      <a href="https://github.com/PaulTiffany">GitHub</a> &middot;
+      <a href="https://compitum.space">compitum.space</a> &middot;
+      <a href="https://paultiffany.github.io/">Research Home</a></p>
+    <p style="margin-top:8px">MIT License. This is a living document. <em class="live">There is no
+      perfect paper</em> &mdash; found a hole? That is the invitation, not the failure.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,327 @@
+\documentclass[11pt]{article}
+
+% ----------------------------------------------------------------------
+% Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing
+% Self-published research artifact ("submitted to the noosphere").
+% Paul C. Tiffany. MIT License. Incomplete by construction.
+% ----------------------------------------------------------------------
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,pdfborder={0 0 0}]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}[lemma]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[lemma]{Definition}
+\theoremstyle{remark}
+\newtheorem*{claim}{Claim}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\Fs}{F_{s}}
+\newcommand{\Vctrl}{V_{\mathrm{ctrl}}}
+\newcommand{\Vtot}{V_{\mathrm{total}}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\textbf{Compitum: A Lyapunov-Stable Bounded Observer for Verifiable Routing}\\[2pt]
+\large A self-published artifact on routing whose behavior is \emph{proved as runnable tests}, not asserted}
+
+\author{Paul C.\ Tiffany\\
+\small Independent Researcher\\
+\small \href{https://compitum.space}{compitum.space} \quad\textbar\quad \href{https://github.com/PaulTiffany/compitum}{github.com/PaulTiffany/compitum}}
+
+\date{\today\\[6pt]
+\small MIT License \quad\textbar\quad Part of the Compitum research program \quad\textbar\quad \emph{Incomplete by construction}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We describe \emph{Compitum}, a geometrically-aware router for large language model
+(LLM) requests, and make an unusual claim about it: not that it wins a benchmark,
+but that its operational behavior is \emph{falsifiable by construction}. Compitum
+selects a model by minimizing a scalarized \emph{Symbolic Free Energy} $\Fs$ over a
+learned symmetric-positive-definite (SPD) metric, subject to feasibility-first
+constraints, while a Lyapunov-style controller gates two-timescale online updates.
+We state the assumptions under which $\Fs$ together with the controller's energy acts
+as a Lyapunov functional for the discrete routing dynamics, and---this is the point---we
+pin every claim to a property-based test that a reader can run to try to break it. We
+report an honest empirical picture: on a synthetic benchmark Compitum attains higher
+utility-per-dollar at zero constraint violations \emph{at a measurable latency cost};
+and on flat, engineered-feature materials data the geometric advantage \emph{does not}
+appear, which we argue is a prediction of the framework rather than a failure of it.
+The artifact is offered to the noosphere in the spirit of \emph{Come}: there is no
+perfect paper, only a substrate a reader can mutate and verify.
+\end{abstract}
+
+\begin{center}
+\emph{``All of us is limited. None of us has all the answers. Come develop with us.''}
+\end{center}
+
+\section{Introduction}
+
+The dominant way to argue that a router is good is to report a number on a leaderboard.
+This invites a quiet form of dishonesty. A single aggregate beats hide the conditions
+under which a method helps or hurts; error bars are easy to draw and hard to earn; and a
+reader cannot, from the paper alone, check whether the claimed behavior actually holds in
+the code. We have come to call this pattern \emph{masking}: asserting an adequacy the
+artifact cannot back.
+
+This paper takes the opposite stance, which we call \emph{verifiable by construction}.
+Compitum's contribution is not a benchmark win---we will be explicit about where it does
+\emph{not} win---but a router whose structural and dynamical properties are stated as
+assumptions, derived as lemmas, and then \emph{pinned to executable property-based tests}.
+The predictions in Section~\ref{sec:falsification} each carry an explicit falsification
+criterion and the path to the test that checks it. If the claims are false, the reader
+can find out in minutes, without trusting us.
+
+\paragraph{Bounded observers.} Compitum belongs to a wider program that treats
+knowers---electrons, networks, institutions, routers---as \emph{bounded observers}: systems
+that must act on a coarse, finite read of a richer reality. A router is a bounded observer
+over a model pool: it never sees true quality, only calibrated estimates; it cannot try
+every model, only score a few; it must respect hard constraints (region, policy,
+capability) it did not choose. The companion artifacts \emph{The Wicked Prior}
+\cite{tiffany2025wicked} and the SRMF/geometric-systems notes develop the bounded-observer
+geometry in narrative and physical settings; the present artifact develops it for routing.
+
+\paragraph{What we claim, and what we do not.} We claim: (i) a concrete geometric
+construction (SPD metric learning + constraint-aware selection + a Lyapunov-style
+controller); (ii) lemmas, with stated assumptions, under which a composite energy is
+non-increasing along the routed trajectory; (iii) a falsification harness mapping each
+property to a runnable test; and (iv) an honest empirical reading, including a negative
+result. We do \emph{not} claim a general benchmark victory, a complete (global) stability
+proof, or that $\Fs$ is the ``correct'' potential. Those are stated as open, in
+Section~\ref{sec:limits}, as the direction the program is heading.
+
+\section{Construction}\label{sec:construction}
+
+\paragraph{State and observers.} A request is summarized by an embedding $x\in\R^{d}$.
+A model pool $\mathcal{A}=\{m_1,\dots,m_{|\mathcal{A}|}\}$ is the action set. For each
+model $m$ we hold a center $\mu_m\in\R^{d}$ and calibrated predictors
+$\hat q_m,\hat\ell_m,\hat c_m$ for quality, latency, and cost
+(\code{src/compitum/predictors.py}).
+
+\paragraph{Learned SPD metric.} Each model carries a low-rank SPD metric
+\begin{equation}
+M_m = L_m L_m^{\top} + \delta I,\qquad \delta>0,
+\end{equation}
+so $M_m$ is strictly positive definite (\code{src/compitum/metric.py}). Distances are
+Mahalanobis on the whitened residual $z = x-\mu_m$:
+$d_{M_m}(x,\mu_m) = \sqrt{z^{\top}M_m z}$. We work with a learned SPD (Riemannian)
+metric rather than a fixed Euclidean one because the relevant notion of ``fit'' between a
+prompt and a model is anisotropic; the geometry is the inductive bias.
+
+\paragraph{Symbolic Free Energy.} Routing scalarizes competing desiderata into a single
+potential (\code{src/compitum/energy.py}):
+\begin{equation}\label{eq:Fs}
+\Fs(x,m) = \alpha\,(-\hat q_m) + \beta_t\,\hat\ell_m + \beta_c\,\hat c_m
+        + \beta_d\, d_{M_m}(x,\mu_m) - \beta_s\, e_m,
+\end{equation}
+with nonnegative weights, where $e_m$ is an evidence/practice term. Lower $\Fs$ is better:
+high predicted quality and evidence pull it down; latency, cost, and geometric distance push
+it up. The selected model is the feasible minimizer of $\Fs$.
+
+\paragraph{Feasibility-first selection.} Hard constraints (region, policy, capability) are
+enforced before optimization by a reflective constraint solver
+(\code{src/compitum/constraints.py}), which returns the feasible set and approximate
+shadow prices (duals)~\cite{boyd_cvx}. Selection is therefore \emph{constraint-aware}: an infeasible model
+is never chosen regardless of its $\Fs$, and the duals are exposed as diagnostics rather
+than relied upon as exact.
+
+\paragraph{Lyapunov-style controller and two timescales.} Online adaptation runs on two
+timescales (\code{src/compitum/control.py}, \code{src/compitum/router.py}):
+\begin{itemize}[nosep]
+\item \textbf{Fast (every step):} a controller maintains a drift integral with anti-windup
+and a trust radius $r\in[0.2,5.0]$, shrinking $r$ on violation ($\times 0.5$) and expanding
+on success ($\times 1.05$). Its Lyapunov candidate is $\Vctrl = (\text{drift integral})^{2}$.
+\item \textbf{Slow (every \code{update\_stride} steps):} the metric factor $L_m$ is updated
+by a backtracking line search on a whitened surrogate energy
+$E(L;z)=\tfrac12\beta_d\lVert L^{\top}z\rVert^{2}$, accepting only steps with $E_{k+1}\le E_k$.
+\end{itemize}
+Separating the timescales lets the controller damp drift between metric updates, and lets
+metric updates be conservative (line-searched) rather than aggressive.
+
+\section{Lyapunov-Style Stability}\label{sec:lyapunov}
+
+We state the discrete-time stability picture at the altitude the code actually supports:
+\emph{local, surrogate, and matched by tests}, in the standard discrete Lyapunov/LaSalle
+sense~\cite{astrom_murray}. Full continuous-time grounding is deferred to
+Section~\ref{sec:limits} as program direction, not present claim.
+
+\paragraph{Assumptions.}
+(A1) \emph{Positive-definiteness}: $M_m=L_mL_m^{\top}+\delta I\succ 0$ for $\delta>0$.
+(A2) \emph{Observability}: $\Fs$ and per-action deltas are computable from calibrated
+predictors and the metric.
+(A3) \emph{Bounded controller}: the trust radius is clipped to $[0.2,5.0]$ and the drift
+integral is anti-windup limited.
+(A4) \emph{Fixed selection between strides}: along the analyzed segment the chosen model and
+embedding are held fixed (no switching), isolating the learning/control dynamics.
+
+\begin{lemma}[Learning descent]\label{lem:A}
+Under (A1)--(A2) and a backtracking line search that accepts only non-increasing steps, the
+metric update satisfies $E(L_{k+1};z)\le E(L_k;z)$.
+\end{lemma}
+\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_lg.py::test\_metric\_update\_line\_search\_non\_increase}.
+
+\begin{lemma}[Zero-error Lyapunov decay]\label{lem:B}
+Under (A3), if the observed error proxy $d_\star$ is zero for $T$ steps, the controller
+candidate $\Vctrl=(\text{drift integral})^{2}$ is non-increasing over those steps.
+\end{lemma}
+\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_control\_sy.py::test\_lyapunov\_decays\_under\_zero\_error}.
+
+\begin{lemma}[Two-timescale isolation]\label{lem:C}
+Before \code{update\_stride} is reached, $L_m$ is unchanged; updates occur only at stride
+boundaries, subject to Lemma~\ref{lem:A}.
+\end{lemma}
+\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_control\_sy.py::test\_two\_timescale\_metric\_update\_stride}.
+
+\begin{proposition}[Composite non-increase]\label{prop:composite}
+Define $\Vtot(k)=E(L_k;z)+\gamma\,\Vctrl(k)$ with $\gamma>0$. Under (A1)--(A4), at the
+sequence of stride boundaries $\Vtot$ is non-increasing and bounded below by $0$: the
+controller term does not increase under small drift (Lemma~\ref{lem:B}) and the learning
+term does not increase at strides (Lemma~\ref{lem:A}). In the routed certificate, the
+negative of the distance component is an observable proxy for $E$, and it does not increase
+over repeated updates.
+\end{proposition}
+\noindent\emph{Pinned to:} \code{tests/invariants/test\_invariants\_srmf\_lyapunov.py::test\_distance\_decreases\_over\_updates}.
+
+\begin{remark}[Honest scope]
+This is a \emph{Lyapunov-style} statement: it establishes monotone non-increase of a
+composite surrogate under bounded-observer assumptions, matched by tests. It is local (a
+forward-invariant sublevel neighborhood), it assumes fixed selection between strides, and it
+does not by itself prove global asymptotic convergence. We say ``$\Fs$ acts as a Lyapunov
+functional'' in exactly this bounded sense, and no stronger.
+\end{remark}
+
+\section{Falsification Harness}\label{sec:falsification}
+
+The invariants suite is the empirical heart of this artifact: each property below is a
+prediction with an explicit way to be wrong, and a test that tries to make it wrong (most are
+property-based, generating many cases per run). To attempt falsification:
+\begin{center}
+\code{HYPOTHESIS\_PROFILE=ci pytest -q tests/invariants}
+\end{center}
+
+\begin{longtable}{@{}p{0.5cm}p{5.4cm}p{4.0cm}p{3.2cm}@{}}
+\toprule
+\textbf{} & \textbf{Prediction} & \textbf{Falsified if} & \textbf{Test}\\
+\midrule
+\endhead
+P1 & The learned metric $M_m$ is strictly SPD. & any eigenvalue $\le 0$ for $\delta>0$. & \code{test\_invariants\_metric}\\
+P2 & $d_{M_m}$ obeys symmetry, triangle inequality, and ray monotonicity. & any axiom violated beyond tolerance. & \code{test\_invariants\_metric\_triangle}, \code{...\_ray}\\
+P3 & (Lemma~\ref{lem:A}) Metric line-search updates are non-increasing in $E$. & $E_{k+1}>E_k$ on any accepted step. & \code{test\_invariants\_lg}\\
+P4 & (Lemma~\ref{lem:B}) $\Vctrl$ decays under zero drift. & $\Vctrl$ increases under $d_\star=0$. & \code{test\_invariants\_control\_sy}\\
+P5 & (Lemma~\ref{lem:C}) Learning is isolated between strides. & $L_m$ changes before \code{update\_stride}. & \code{test\_invariants\_control\_sy}\\
+P6 & (Prop.~\ref{prop:composite}) Routed distance proxy does not increase over updates. & final $>$ initial beyond tolerance. & \code{test\_invariants\_srmf\_lyapunov}\\
+P7 & Selection is feasibility-monotone; duals are near-zero slack at the boundary. & an infeasible model selected, or slack far from $0$. & \code{test\_invariants\_constraints}, \code{...\_duals\_near\_binding}\\
+P8 & Routing is deterministic and paraphrase behavior is bounded and explainable. & identical input yields different routes; flip budget exceeded. & \code{test\_invariants\_router\_determinism}, \code{test\_paraphrase\_*}\\
+\bottomrule
+\end{longtable}
+
+\noindent A passing suite does not prove the framework ``correct''; it proves these specific,
+named properties hold across the generated cases. That is a smaller and more honest claim than
+a benchmark number, and a more useful one: it tells you exactly what you can rely on.
+
+\section{Empirical Reading (the honest part)}\label{sec:empirical}
+
+\paragraph{E1 --- Cost-efficiency at zero violations, with a latency cost (synthetic).}
+On a synthetic routing benchmark (\code{bench\_summary.csv}; cases A--D; strategies
+\code{compitum} vs \code{fixed\_best}, \code{greedy}, $\varepsilon$-decay, UCB1, Thompson,
+\code{cost\_linear}), Compitum attains higher utility-per-dollar than the fixed and greedy
+baselines (e.g.\ case~A: $\approx 0.96$ vs $\approx 0.82$) at \emph{zero} constraint
+violations. The honest cost: its $p95$ latency is $\sim\!6$\,s versus sub-millisecond for the
+trivial baselines---the geometric scoring and constraint solve are not free. The claim is
+therefore narrow: \emph{when constraint-correctness and cost-efficiency matter more than raw
+decision latency}, the geometry pays for itself. This is reproducible from the repository and
+is falsified if a rerun shows no utility-per-dollar advantage or any constraint violation.
+
+\paragraph{E2 --- The geometric advantage does not transfer to flat data (a prediction,
+not a failure).} On engineered-feature materials data (UCI superconductivity; a matbench demo)
+the curved-metric advantage \emph{disappears}: fitting suppression-vs-distance scaling near
+top performers yields exponent $\alpha\approx 0.9\text{--}1.2$ (linear, not quadratic), with
+the learned metric performing comparably to Euclidean, and gradient norms that do not approach
+zero under refinement. We read this not as a defeat but as a \emph{boundary condition the
+framework predicts}: a metric is only meaningful on the right chart. Engineered descriptors are
+a warped embedding, not the system's control knobs; absent a stationary point in that chart,
+the linear term dominates and geometry $\approx$ Euclid. The method is expected to help where a
+trusted low-dimensional control manifold exists, and \emph{not} to manufacture curvature where
+the data are flat. Stating where a method fails, and why, is the part most papers omit.
+
+\section{Limitations and Program Direction}\label{sec:limits}
+
+We are explicit about the gap between what is proved and what is hoped.
+\begin{itemize}[nosep]
+\item \textbf{Local, not global.} Section~\ref{sec:lyapunov} gives non-increase under
+bounded, fixed-selection assumptions; global asymptotic stability (radially unbounded
+potential, single equilibrium, switching dynamics) is open.
+\item \textbf{Surrogate, not first principles.} $\Fs$ is a designed scalarization; we do not
+claim it is the unique or correct potential. Misspecification weakens behavior.
+\item \textbf{Stability $\neq$ safety.} A stable router can be confidently wrong; external
+safety constraints remain necessary.
+\item \textbf{Curved-space validation is future work.} The bounded-observer/curvature thesis
+(shared with \emph{The Wicked Prior} and the SRMF notes) is validated here only at the level of
+runnable invariants, not as a closed physical theory. Where it goes: a continuous-time control
+Lyapunov grounding, and validation on systems with genuine control manifolds.
+\end{itemize}
+
+\section{Relation to the Program}
+This artifact is one bloom of a larger program organized by a single commitment---\emph{adequacy
+should be measurable, not asserted}. \emph{The Hypothesis Surface} states the epistemology;
+\emph{Come} operationalizes it at the level of test suites (mutation-tested seams between
+reasoning systems); \emph{The Wicked Prior} and the SRMF/geometric-systems notes carry the
+bounded-observer geometry into narrative and physics. Compitum is the routing instance: a place
+where the commitment is cheap to check, because the checks are code.
+
+\section{Reproduction}
+Clone \href{https://github.com/PaulTiffany/compitum}{the repository} and run the falsification
+harness (\code{pytest -q tests/invariants}); regenerate the synthetic benchmark and inspect
+\code{bench\_summary.csv}; the materials negative (E2) is reproduced by the \code{examples/supercon}
+scripts. Every numeric claim above is intended to be re-derivable; where it is not yet
+turnkey, that is a defect of this draft, not a feature.
+
+\section*{Conclusion}
+We have argued for routing whose behavior you can check rather than take on faith, given the
+assumptions and lemmas under which Compitum's energy is Lyapunov-style stable, mapped each
+property to a test designed to break it, and reported an honest empirical picture including a
+negative result. In the spirit of \emph{Come}, this is not a finished proof of a finished
+system. It is a substrate, offered incomplete on purpose, for whoever wants to run it, doubt
+it, and extend it.
+
+\bigskip
+\noindent\emph{This is a living document under the MIT License. There is no perfect paper.
+Found a hole? That is the invitation, not the failure.}
+
+\section*{Acknowledgments and Further Reading}
+The references are deliberately limited to freely accessible sources, so any reader can
+verify every claim here at no cost---the point of submitting to the noosphere. The author's
+understanding is nonetheless indebted to the standard literature studied in preparation for
+AGI-26, ICML, and NeurIPS---among them Khalil's \emph{Nonlinear Systems}, Bhatia's
+\emph{Positive Definite Matrices}, and Amari's \emph{Information Geometry and Its
+Applications}---which readers with library access will find deepen every section. Citing the
+open sources is a choice about access, not a comment on the value of the canon.
+
+\medskip
+\noindent{\small\emph{All references below are freely accessible online --- no paywall,
+nothing to buy.}}
+
+\begin{thebibliography}{9}
+\bibitem{astrom_murray} K.~J.~\AA{}str\"om and R.~M.~Murray. \emph{Feedback Systems: An
+  Introduction for Scientists and Engineers}. Princeton University Press, 2008.
+  Full text freely available: \url{https://fbsbook.org}. (Lyapunov and LaSalle stability.)
+\bibitem{boyd_cvx} S.~Boyd and L.~Vandenberghe. \emph{Convex Optimization}. Cambridge
+  University Press, 2004. Full text freely available:
+  \url{https://web.stanford.edu/~boyd/cvxbook/}. (Positive-definite matrices; Lagrange
+  duality and shadow prices.)
+\bibitem{tiffany2025wicked} P.~Tiffany. The Wicked Prior as a Bounded-Observer Manifold:
+  Atlas Fracture, Stackelberg Parentage, and Grace-Flow Repair. 2025. Open access:
+  \url{https://paultiffany.github.io/wicked-geometry/}.
+\end{thebibliography}
+
+\end{document}
